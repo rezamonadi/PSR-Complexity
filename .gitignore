@@ -11,8 +11,6 @@ __pycache__/
 
 # C extensions
 *.so
-*.jpg
-*.JPEG
 *.mp4
 *.mpv
 *.mat 
