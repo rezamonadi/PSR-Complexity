@@ -81,20 +81,21 @@ def calculate_statistics(DATA, DAT_SCL, DAT_OFFS):
     perm_entropy_single_pulses = np.zeros([num_pulses, 1])
     corr_dims_single_pulses = np.zeros([num_pulses, 1])
     wavelet_fractal_dimension_single_pulses = np.zeros([num_pulses, 1])
-    
-    for i in range(num_pulses):
+    dfa_single_pulses = np.zeros([num_pulses, 1])
+    for i in tqd(range(num_pulses)):
         Single_Pulses = DATA[i, 0, 0, :] * DAT_SCL[i] + DAT_OFFS[i]
         # Calculate permutation entropy
-        perm_entropy_single_pulses[i] = ant.perm_entropy(Single_Pulses, delay=[1, 2, 3], order=10, normalize=True)
+        # perm_entropy_single_pulses[i] = ant.perm_entropy(Single_Pulses, delay=[1, 2, 3], order=10, normalize=True)
         
         # # Calculate fractal dimension (uncomment if needed)
-        # corr_dims_single_pulses[i] = nolds.corr_dim(Single_Pulses, emb_dim=2)
+        # corr_dims_single_pulses[i] = nolds.corr_dim(Single_Pulses, emb_dim=2, lag=1)
+        dfa_single_pulses[i] = nolds.dfa(Single_Pulses)
 
 
         # Calculate fractal dimension using wavelet transform (uncomment if needed)
-        wavelet_fractal_dimension_single_pulses[i] = wavelet_fractal_dimension(Single_Pulses)
+        # wavelet_fractal_dimension_single_pulses[i] = wavelet_fractal_dimension(Single_Pulses)
     
-    return perm_entropy_single_pulses, corr_dims_single_pulses, wavelet_fractal_dimension_single_pulses
+    return perm_entropy_single_pulses, corr_dims_single_pulses, wavelet_fractal_dimension_single_pulses, dfa_single_pulses
 
 def plot_histogram(values, title, output_path, bin_edges, xlabel='Value', ylabel='Probability Density'):
     """
@@ -141,25 +142,46 @@ def process_file(file_path, output_dir):
     print('Processing pulsar:', pulsar_name)
     # Calculate statistics
     perm_entropy_single_pulses, corr_dims_single_pulses, wavelet_fractal_dimension_single_pulses = calculate_statistics(DATA, DAT_SCL, DAT_OFFS)
-    print('Plotting perm_entropy and corr_dims histograms')    
+    print('Plotting...')    
     
-    # Plot histogram of permutation entropy
-    histogram_dir = os.path.join(output_dir, 'permEntropy/perm_entropy-delay-1-3-order-10/')
-    os.makedirs(os.path.dirname(histogram_dir), exist_ok=True)  # Ensure the directory exists
-    histogram_path = os.path.join(histogram_dir, pulsar_name + '.png')
-    plot_histogram(perm_entropy_single_pulses, pulsar_name, histogram_path, xlabel='Permutation Entropy', bins=np.linspace(0.9, 1, 100))
+    if perm_entropy_single_pulses is not None:
+        # Plot histogram of permutation entropy
+        histogram_dir = os.path.join(output_dir, 'permEntropy/perm_entropy-delay-1-3-order-10/')
+        os.makedirs(os.path.dirname(histogram_dir), exist_ok=True)  # Ensure the directory exists
+        histogram_path = os.path.join(histogram_dir, pulsar_name + '.png')
+        plot_histogram(perm_entropy_single_pulses, pulsar_name, histogram_path, xlabel='Permutation Entropy', bins=np.linspace(0.9, 1, 100))
 
-    # # Plot histogram of correlation dimension
-    # histogram_dir = os.path.join(output_dir, 'fractal_dim/corr_dim-emb_dim-2/')
+
+    if corr_dims_single_pulses is not None:    
+        # # Plot histogram of correlation dimension
+        # histogram_dir = os.path.join(output_dir, 'fractal_dim/corr_dim-emb_dim-2/')
+        # os.makedirs(os.path.dirname(histogram_dir), exist_ok=True)  # Ensure the directory exists
+        # histogram_path = os.path.join(histogram_dir, pulsar_name + '.png')
+        # plot_histogram(corr_dims_single_pulses, pulsar_name, histogram_path, xlabel='Correlation Dimension', bins=np.linspace(-0.1, 0.1, 100))
+    
+    if wavelet_fractal_dimension_single_pulses is not None:
+        # # Plot histogram of wavelet fractal dimension
+        # histogram_dir = os.path.join(output_dir, 'wavelet_fractal_dim/db1/')
+        # os.makedirs(os.path.dirname(histogram_dir), exist_ok=True)  # Ensure the directory exists
+        # histogram_path = os.path.join(histogram_dir, pulsar_name + '.png')
+        # plot_histogram(wavelet_fractal_dimension_single_pulses, pulsar_name, histogram_path, xlabel='Wavelet Fractal Dimension', bins=np.linspace(-0.1, 0.1, 100))
+    if dfa_single_pulses is not None:
+        # # Plot histogram of DFA
+        histogram_dir = os.path.join(output_dir, 'fractal_dim/DFA/')
+        os.makedirs(os.path.dirname(histogram_dir), exist_ok=True)
+        # Ensure the directory exists
+    # # Plot histogram of wavelet fractal dimension
+    # histogram_dir = os.path.join(output_dir, 'wavelet_fractal_dim/db1/')
     # os.makedirs(os.path.dirname(histogram_dir), exist_ok=True)  # Ensure the directory exists
     # histogram_path = os.path.join(histogram_dir, pulsar_name + '.png')
-    # plot_histogram(corr_dims_single_pulses, pulsar_name, histogram_path, xlabel='Correlation Dimension', bins=np.linspace(-0.1, 0.1, 100))
+    # plot_histogram(wavelet_fractal_dimension_single_pulses, pulsar_name, histogram_path, xlabel='Wavelet Fractal Dimension', bins=np.linspace(-0.1, 0.1, 100))
 
-    # Plot histogram of wavelet fractal dimension
-    histogram_dir = os.path.join(output_dir, 'wavelet_fractal_dim/db1/')
+    # # Plot histogram of DFA
+    histogram_dir = os.path.join(output_dir, 'fractal_dim/DFA/')
     os.makedirs(os.path.dirname(histogram_dir), exist_ok=True)  # Ensure the directory exists
     histogram_path = os.path.join(histogram_dir, pulsar_name + '.png')
-    plot_histogram(wavelet_fractal_dimension_single_pulses, pulsar_name, histogram_path, xlabel='Wavelet Fractal Dimension', bins=np.linspace(-0.1, 0.1, 100))
+    plot_histogram(dfa_single_pulses, pulsar_name, histogram_path, xlabel='DFA')    
+
 
     # # Calculate and plot average pulse profile
     # Flux_all = calculate_average_pulse(DATA, DAT_SCL, DAT_OFFS)
@@ -209,21 +231,21 @@ def main():
     # file_names = ['2021-05-10-070130.ar']
     
     
-    # input_dir = 'Vela/single_pulses/'
-    # output_dir = 'Vela/statFigs/'
+    input_dir = 'Vela/single_pulses/'
+    output_dir = 'Vela/statFigs/'
     
     
-    # # Use a subset of CPUs (e.g., half of the available CPUs)
-    # with ProcessPoolExecutor(max_workers=num_cpus // 2) as executor:
+    # Use a subset of CPUs (e.g., half of the available CPUs)
+    with ProcessPoolExecutor(max_workers=num_cpus // 2) as executor:
  
-    #     futures = []
-    #     for address in file_names:
-    #         file_path = os.path.join(input_dir, address)
-    #         futures.append(executor.submit(process_file, file_path, output_dir))
+        futures = []
+        for address in file_names:
+            file_path = os.path.join(input_dir, address)
+            futures.append(executor.submit(process_file, file_path, output_dir))
         
-    #     # Wait for all tasks to complete
-    #     for future in futures:
-    #         future.result()
+        # Wait for all tasks to complete
+        for future in futures:
+            future.result()
 
 
 if __name__ == "__main__":
